@@ -1,0 +1,1388 @@
+import mysql.connector
+import pandas as pd
+import requests
+import json
+import plotly.express as px
+import streamlit as st
+from streamlit_option_menu import option_menu
+from PIL import Image
+
+
+# SQL connection
+mydb = mysql.connector.connect(
+    host='localhost',
+    user='root',
+    password='9965261653@rR',  # Consider using environment variables for passwords
+    database='phonepee1'
+)
+cursor = mydb.cursor()
+
+
+# Function to fetch and load data into DataFrame
+def load_data(table_name):
+    cursor.execute(f"SELECT * FROM phonepee1.{table_name}")
+    data = cursor.fetchall()
+    cursor.execute(f"DESCRIBE phonepee1.{table_name}")
+    columns = [column[0] for column in cursor.fetchall()]
+    return pd.DataFrame(data, columns=columns)
+
+
+# Load data
+aggregate_insurance = load_data('agg_insurance')
+aggregate_transaction = load_data('aggre_transaction')
+aggregate_user = load_data('aggree_userr')
+map_insurance = load_data('map_insurance')
+map_transaction = load_data('map_trans')
+map_user = load_data('map_user')
+top_insurance = load_data('top_insurance')
+top_transaction = load_data('top_transaction')
+top_user = load_data('top_user')
+
+# AGGREGATE ANALYSIS
+# AGGREGATE INSURANCE
+
+def agg_insurance_amount_count_y(df, year):
+
+    df_year = df[df["Years"] == year]
+    df_year.reset_index(inplace=True, drop=True)
+    df_grouped = df_year.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1,col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount", title=f"{year} TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=800, width=800)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count", title=f"{year} TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1,col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States", title=f"{year} TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=800, width=800)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States", title=f"{year} TRANSACTION COUNT",
+                                             fitbounds="locations", height=800, width=800)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return df_year
+
+def agg_insurance_amount_count_y_quarter(df,quarter):
+    df_quarter = df[df["Quarter"] == quarter]
+    df_quarter.reset_index(inplace=True, drop=True)
+    df_grouped = df_quarter.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1,col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount",
+                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=850, width=800)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
+           title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1,col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                              color_continuous_scale="Rainbow",
+                              range_color=(df_grouped["Transaction_amount"].min(),df_grouped["Transaction_amount"].max()),
+                              hover_name="States",
+                              title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                              fitbounds="locations", height=600, width=600)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                             featureidkey="properties.ST_NM", color="Transaction_count",
+                             color_continuous_scale="Rainbow",
+                             range_color=(df_grouped["Transaction_count"].min(),
+                                          df_grouped["Transaction_count"].max()),
+                             hover_name="States",
+                             title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                             fitbounds="locations", height=600, width=600)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+        return df_quarter
+
+
+# AGGREGATE TRANSACTION
+
+def aggre_transaction_amount_count_y(df,year):
+    df_year = df[df["Years"] == year]
+    df_year.reset_index(inplace=True, drop=True)
+    df_grouped = df_year.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1,col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount", title=f"{year} TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=800, width=800)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count", title=f"{year} TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=800, width=800)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    col1,col2 = st.columns(2)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States", title=f"{year} TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=600, width=600)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States", title=f"{year} TRANSACTION COUNT",
+                                             fitbounds="locations", height=600, width=600)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return df_year
+
+
+def aggre_Transaction_Type_amount_count_y(df,states):
+    df_year = df[df["States"] == states]
+    df_year.reset_index(inplace=True, drop=True)
+
+    df_grouped = df_year.groupby("Transaction_type")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1,col2 = st.columns(2)
+    with col1:
+        fig_amount = px.pie(df_grouped, values="Transaction_amount", names="Transaction_type",
+                            title=f"{states} TRANSACTION AMOUNT", hole=0.5,
+                            color_discrete_sequence=px.colors.sequential.Viridis)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.pie(df_grouped, values="Transaction_count", names="Transaction_type",
+                           title=f"{states} TRANSACTION COUNT", hole=0.5,
+                           color_discrete_sequence=px.colors.sequential.Bluered_r)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+
+
+def aggre_transaction_amount_count_y_quarter(df,quarter):
+    df_quarter = df[df["Quarter"] == quarter]
+    df_grouped = df_quarter.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1,col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount",
+                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=800, width=800)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
+                           title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1,col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                              color_continuous_scale="Rainbow",
+                              range_color=(df_grouped["Transaction_amount"].min(),
+                                           df_grouped["Transaction_amount"].max()),
+                              hover_name="States",
+                              title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                              fitbounds="locations", height=600, width=600)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                 featureidkey="properties.ST_NM", color="Transaction_count",
+                                 color_continuous_scale="Rainbow",
+                                 range_color=(df_grouped["Transaction_count"].min(),
+                                              df_grouped["Transaction_count"].max()),
+                                 hover_name="States",
+                                 title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                                 fitbounds="locations", height=600, width=600)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return df_quarter
+
+# AGGREGATE USER
+
+def aggregate_user_year(df,year):
+
+    agg_user_y = df[df["Years"] == year]
+    agg_user_y.reset_index(drop=True, inplace=True)
+    agg_user_yg = pd.DataFrame(agg_user_y.groupby("Brand")["Transaction_count"].sum())
+    agg_user_yg.reset_index(inplace=True)
+    col1, = st.columns(1)
+    with col1:
+        fig_bar_1 = px.bar(agg_user_yg, x="Brand", y="Transaction_count",
+                           title=f"{year} BRANDS AND TRANSACTION COUNT",
+                           width=800, color_discrete_sequence=px.colors.sequential.Viridis, hover_name="Brand")
+        # fig_bar_1.show()
+        st.plotly_chart(fig_bar_1)
+
+    return agg_user_y
+
+def aggregate_user_year_states(df,state):
+    # Ensure that the filter is applied correctly by removing the quotes around state
+    auys = df[df["States"] == state]
+    auys.reset_index(drop=True, inplace=True)
+
+    fig_line_1 = px.line(auys, x="Brand", y="Transaction_count", hover_name="Percentage",
+                         title=f"{state.upper()} BRANDS, TRANSACTION COUNT, PERCENTAGE", width=1000, markers=True)
+
+    # Use st.plotly_chart to display the chart in Streamlit
+    # fig_line_1.show()
+    st.plotly_chart(fig_line_1)
+
+# MAP ANALYSIS
+# MAP INSURANCE
+def map_ins_transaction_amount_count_y(df,year):
+
+    df_year = df[df["Years"] == year]
+    df_year.reset_index(inplace=True, drop=True)
+    df_grouped = df_year.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+
+    col1,col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount", title=f"{year} TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=500, width=1000)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count", title=f"{year} TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=500, width=1000)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1, col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States", title=f"{year} TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=600, width=800)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States", title=f"{year} TRANSACTION COUNT",
+                                             fitbounds="locations", height=600, width=800)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return df_year
+
+def map_ins_transaction_amount_count_y_quarter(df, quarter):
+    df_quarter = df[df["Quarter"] == quarter]
+    df_grouped = df_quarter.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount",
+                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=800, width=800)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
+                           title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1, col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States",
+                                              title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=600, width=600)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States",
+                                             title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                                             fitbounds="locations", height=600, width=600)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return df_quarter
+
+def map_insurance_districts_count(df, state):
+    df_year = df[df["States"] == state]
+    df_grouped = df_year.groupby("Districts")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, y="Transaction_amount", x="Districts",
+                            title=f"{state.upper()} DISTRICT MAP INSURANCE AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=650, width=1000)
+        st.plotly_chart(fig_amount)
+        # fig_amount.show()
+
+    with col2:
+        fig_count = px.bar(df_grouped, y="Transaction_count", x="Districts",
+                           title=f"{state.upper()} DISTRICT MAP INSURANCE COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=650, width=1000)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+
+# MAP TRANSACTION
+
+def map_transaction_amount_count_y(df, year):
+    df_year = df[df["Years"] == year]
+    df_year.reset_index(inplace=True, drop=True)
+    df_grouped = df_year.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount", title=f"{year} TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=500, width=1000)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count", title=f"{year} TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=500, width=1000)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1, col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States", title=f"{year} TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=600, width=800)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States", title=f"{year} TRANSACTION COUNT",
+                                             fitbounds="locations", height=600, width=800)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return df_year
+
+
+def map_transaction_amount_count_y_quarter(df, quarter):
+    df_quarter = df[df["Quarter"] == quarter]
+    df_grouped = df_quarter.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount",
+                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=800, width=800)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
+                           title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1,col2 = st.columns(2)
+    url ="https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States",
+                                              title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=600, width=600)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States",
+                                             title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                                             fitbounds="locations", height=600, width=600)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return df_quarter
+
+def map_trans_districts_amount_count(df, state):
+    df_year = df[df["States"] == state]
+    df_grouped = df_year.groupby("Districts")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, y="Transaction_amount", x="Districts",
+                            title=f"{state.upper()} DISTRICT MAP INSURANCE AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=650, width=1000)
+        st.plotly_chart(fig_amount)
+        # fig_amount.show()
+
+    with col2:
+        fig_count = px.bar(df_grouped, y="Transaction_count", x="Districts",
+                           title=f"{state.upper()} DISTRICT MAP INSURANCE COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=650, width=1000)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+
+
+# MAP USER ANALYSIS
+# MAP USER
+
+def map_user_r_a(df, year):
+    df_year = df[df["Years"] == year]
+    df_year.reset_index(inplace=True, drop=True)
+    df_grouped = df_year.groupby("States")[["RegisteredUsers", "AppOpens"]].sum().reset_index()
+
+    fig_line_1 = px.line(df_grouped, x="States", y=["RegisteredUsers", "AppOpens"],
+                         title=f"{year} REGISTEREDUSERS ,APPOPENS", width=1000, height=800, markers=True)
+
+    # Use st.plotly_chart to display the chart in Streamlit
+    # fig_line_1.show()
+    st.plotly_chart(fig_line_1)
+    return df_year
+
+def map_user_r_a_q(df, quarter):
+    df_quarter = df[df["Quarter"] == quarter]
+    df_quarter.reset_index(inplace=True, drop=True)
+    df_grouped = df_quarter.groupby("States")[["RegisteredUsers", "AppOpens"]].sum().reset_index()
+
+    fig_line_2 = px.line(df_grouped, x="States", y=["RegisteredUsers", "AppOpens"],
+                         title=f"{quarter} REGISTEREDUSERS ,APPOPENS", width=1000, height=800, markers=True,
+                         color_discrete_sequence=px.colors.sequential.Rainbow_r)
+
+    # Use st.plotly_chart to display the chart in Streamlit
+    # fig_line_1.show()
+    st.plotly_chart(fig_line_2)
+    return df_quarter
+
+def map_user_r_a_s(df, states):
+    df_states = df[df["States"] == states]
+    df_states.reset_index(inplace=True, drop=True)
+    # df_states
+
+    fig_amount = px.bar(df_states, y="RegisteredUsers", x="Districts",
+                        title="REGISTERED USERS",
+                        color_discrete_sequence=px.colors.sequential.Viridis, height=800, width=800)
+    # fig_amount.show()
+    st.plotly_chart(fig_amount)
+
+    fig_count = px.bar(df_states, y="AppOpens", x="Districts",
+                       title="APP OPENS",
+                       color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+    # fig_count.show()
+    st.plotly_chart(fig_count)
+
+
+# TOP USER ANALYSIS
+# TOP INSURANCE
+
+def top_insurance_amount_count_y(df, year):
+    df_year = df[df["Years"] == year]
+    df_year.reset_index(inplace=True, drop=True)
+    df_grouped = df_year.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount", title=f"{year} TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=500, width=1000)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count", title=f"{year} TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=500, width=1000)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1, col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States", title=f"{year} TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=600, width=800)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States", title=f"{year} TRANSACTION COUNT",
+                                             fitbounds="locations", height=600, width=800)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return df_year
+
+def Top_ins_transaction_amount_count_Y_Quarter(df, quarter):
+    df_quarter = df[df["Quarter"] == quarter]
+    df_grouped = df_quarter.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount",
+                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=800, width=800)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
+                           title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1, col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States",
+                                              title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=600, width=600)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States",
+                                             title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                                             fitbounds="locations", height=600, width=600)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return
+
+def top_insurance_amount_count_pincode_y(df, states):
+    df_year = df[df["States"] == states]
+    df_year.reset_index(drop=True, inplace=True)
+
+
+    fig_amount = px.bar(df_year, x="Quarter", y="Transaction_amount", hover_data=["pincodes"],
+                        title="TRANSACTION AMOUNT",
+                        color_discrete_sequence=px.colors.sequential.Viridis, height=800)
+    # fig_amount.show()
+    st.plotly_chart(fig_amount)
+    fig_count = px.bar(df_year, x="Quarter", y="Transaction_count", title="TRANSACTION COUNT", hover_data=["pincodes"],
+                       color_discrete_sequence=px.colors.sequential.Bluered_r, height=500, width=1000)
+    # fig_count.show()
+    st.plotly_chart(fig_count)
+
+
+# TOP USER TRANSACTION
+
+def top_transaction_amount_count_y(df, year):
+    df_year = df[df["Years"] == year]
+    df_year.reset_index(inplace=True, drop=True)
+    df_grouped = df_year.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount", title=f"{year} TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=500, width=1000)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count", title=f"{year} TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=500, width=1000)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1, col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States", title=f"{year} TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=600, width=800)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States", title=f"{year} TRANSACTION COUNT",
+                                             fitbounds="locations", height=600, width=800)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return df_year
+
+
+def top_transaction_amount_count_y_quarter(df, quarter):
+    df_quarter = df[df["Quarter"] == quarter]
+    df_grouped = df_quarter.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount = px.bar(df_grouped, x="States", y="Transaction_amount",
+                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                            color_discrete_sequence=px.colors.sequential.Viridis, height=800, width=800)
+        # fig_amount.show()
+        st.plotly_chart(fig_amount)
+    with col2:
+        fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
+                           title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+        # fig_count.show()
+        st.plotly_chart(fig_count)
+    col1, col2 = st.columns(2)
+    url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    response = requests.get(url)
+    geojson_data = json.loads(response.content)
+    with col1:
+        fig_choropleth_amount = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                              featureidkey="properties.ST_NM", color="Transaction_amount",
+                                              color_continuous_scale="Rainbow",
+                                              range_color=(df_grouped["Transaction_amount"].min(),
+                                                           df_grouped["Transaction_amount"].max()),
+                                              hover_name="States",
+                                              title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION AMOUNT",
+                                              fitbounds="locations", height=600, width=600)
+        fig_choropleth_amount.update_geos(visible=False)
+        # fig_choropleth_amount.show()
+        st.plotly_chart(fig_choropleth_amount)
+    with col2:
+        fig_choropleth_count = px.choropleth(df_grouped, geojson=geojson_data, locations="States",
+                                             featureidkey="properties.ST_NM", color="Transaction_count",
+                                             color_continuous_scale="Rainbow",
+                                             range_color=(df_grouped["Transaction_count"].min(),
+                                                          df_grouped["Transaction_count"].max()),
+                                             hover_name="States",
+                                             title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
+                                             fitbounds="locations", height=600, width=600)
+        fig_choropleth_count.update_geos(visible=False)
+        # fig_choropleth_count.show()
+        st.plotly_chart(fig_choropleth_count)
+    return
+
+
+def top_transaction_amount_count_pincode_y(df,states):
+    df_year = df[df["States"] == states]
+    df_year.reset_index(drop=True, inplace=True)
+
+    fig_amount = px.bar(df_year, x="Quarter", y="Transaction_amount", hover_data=["pincodes"],
+                        title="TRANSACTION AMOUNT",
+                        color_discrete_sequence=px.colors.sequential.Viridis, height=800)
+    # fig_amount.show()
+    st.plotly_chart(fig_amount)
+    fig_count = px.bar(df_year, x="Quarter", y="Transaction_count", title="TRANSACTION COUNT", hover_data=["pincodes"],
+                       color_discrete_sequence=px.colors.sequential.Bluered_r, height=500, width=1000)
+    # fig_count.show()
+    st.plotly_chart(fig_count)
+
+
+# TOP USER
+
+def top_user_year(df, year):
+    agg_user_y = df[df["Years"] == year]
+    agg_user_y.reset_index(drop=True, inplace=True)
+    agg_user_yg = pd.DataFrame(agg_user_y.groupby("Brand")["Transaction_count"].sum())
+    agg_user_yg.reset_index(inplace=True)
+    col1, = st.columns(1)
+    with col1:
+        fig_bar_1 = px.bar(agg_user_yg, x="Brand", y="Transaction_count",
+                           title=f"{year} BRANDS AND TRANSACTION COUNT",
+                           width=800, color_discrete_sequence=px.colors.sequential.Viridis, hover_name="Brand")
+        # fig_bar_1.show()
+        st.plotly_chart(fig_bar_1)
+    return agg_user_y
+
+def top_user_analysis(df, year):
+    df_year = df[df["Years"] == year]
+    df_year.reset_index(drop=True, inplace=True)
+    df_grouped = pd.DataFrame(df_year.groupby(["States", "Quarter"])["registeredUsers"].sum())
+    df_grouped.reset_index(inplace=True)
+    # df_grouped
+    fig_topuser_1 = px.bar(df_grouped, x="States", y="registeredUsers", color="Quarter", width=800, height=800,
+                           color_discrete_sequence=px.colors.sequential.Burgyl, hover_name="States",
+                           title=f"{year} REGISTERED USERS")
+    # fig_topuser_1.show()
+    st.plotly_chart(fig_topuser_1)
+    return df_year
+
+def top_user_analysis_quarter(df, states):
+    # Filter the dataframe for the given state
+    df_year = df[df["States"] == states]
+    df_year.reset_index(drop=True, inplace=True)
+
+    # Create the bar plot
+    fig_topuser_2 = px.bar(
+        df_year,
+        x="Quarter",
+        y="registeredUsers",
+        color="registeredUsers",
+        width=800,
+        height=800,
+        color_continuous_scale=px.colors.sequential.Magenta,
+        hover_data=["pincodes"],
+        title="REGISTERED USERS, PINCODES, QUARTER"
+    )
+
+    # Show the plot
+    # fig_topuser_2.show()
+    st.plotly_chart(fig_topuser_2)
+    return df_year
+
+#top user charts amount:
+def top_chart_trans_amount(table_name):
+    # Query 1: Top 10 states by transaction amount (descending)
+    query1 = f'''
+        SELECT states, SUM(transaction_amount) AS transaction_amount
+        FROM {table_name}
+        GROUP BY states
+        ORDER BY transaction_amount DESC
+        LIMIT 10;
+    '''
+
+    cursor.execute(query1)
+    table_1 = cursor.fetchall()
+
+    df_1 = pd.DataFrame(table_1, columns=["States", "Transaction_amount"])
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount_1 = px.bar(df_1, x="States", y="Transaction_amount",
+                              title=f"Top 10 States by Transaction Amount {table_name}",
+                              color_discrete_sequence=px.colors.sequential.Viridis,
+                              height=600, width=600, hover_name="States")
+        # fig_amount_1.show()
+        st.plotly_chart(fig_amount_1)
+
+    # Query 2: Bottom 10 states by transaction amount (ascending)
+    query2 = f'''
+        SELECT states, SUM(transaction_amount) AS transaction_amount
+        FROM {table_name}
+        GROUP BY states
+        ORDER BY transaction_amount 
+        LIMIT 10;
+    '''
+
+    cursor.execute(query2)
+    table_2 = cursor.fetchall()
+
+    df_2 = pd.DataFrame(table_2, columns=["States", "Transaction_amount"])
+    with col2:
+        fig_amount_2 = px.bar(df_2, x="States", y="Transaction_amount",
+                              title="Bottom 10 States by Transaction Amount",
+                              color_discrete_sequence=px.colors.sequential.Viridis,
+                              height=600, width=600, hover_name="States")
+        # fig_amount_2.show()
+        st.plotly_chart(fig_amount_2)
+
+    # Query 3: Average transaction amount by state
+    query3 = f'''
+        SELECT states, AVG(transaction_amount) AS transaction_amount
+        FROM {table_name}
+        GROUP BY states
+        ORDER BY transaction_amount;
+    '''
+
+    cursor.execute(query3)
+    table_3 = cursor.fetchall()
+
+    df_3 = pd.DataFrame(table_3, columns=["States", "Transaction_amount"])
+
+    fig_amount_3 = px.bar(df_3, y="States", x="Transaction_amount", orientation="h",
+                          title="Average Transaction Amount by State",
+                          color_discrete_sequence=px.colors.sequential.Viridis,
+                          height=600, width=600, hover_name="States")
+    # fig_amount_3.show()
+    st.plotly_chart(fig_amount_3)
+
+
+# top_chart_trans_amount("agg_insurance")
+#top user charts count:
+
+def top_chart_trans_count(table_name):
+    # Query 1: Top 10 states by transaction count (descending)
+    query1 = f'''
+        SELECT states, SUM(transaction_count) AS transaction_count
+        FROM {table_name}
+        GROUP BY states
+        ORDER BY transaction_count DESC
+        LIMIT 10;
+    '''
+
+    cursor.execute(query1)
+    table_1 = cursor.fetchall()
+
+    df_1 = pd.DataFrame(table_1, columns=["States", "Transaction_count"])
+    col3, col4 = st.columns(2)
+    with col3:
+        fig_count_1 = px.bar(df_1, x="States", y="Transaction_count",
+                             title="Top 10 States by Transaction Count",
+                             color_discrete_sequence=px.colors.sequential.Magenta,
+                             height=800, width=800, hover_name="States")
+        # fig_count_1.show()
+        st.plotly_chart(fig_count_1)
+
+    # Query 2: Bottom 10 states by transaction count (ascending)
+    query2 = f'''
+        SELECT states, SUM(transaction_count) AS transaction_count
+        FROM {table_name}
+        GROUP BY states
+        ORDER BY transaction_count 
+        LIMIT 10;
+    '''
+
+    cursor.execute(query2)
+    table_2 = cursor.fetchall()
+
+    df_2 = pd.DataFrame(table_2, columns=["States", "Transaction_count"])
+    with col4:
+        fig_count_2 = px.bar(df_2, x="States", y="Transaction_count",
+                             title="Bottom 10 States by Transaction Count",
+                             color_discrete_sequence=px.colors.sequential.Magenta,
+                             height=800, width=800, hover_name="States")
+        # fig_count_2.show()
+        st.plotly_chart(fig_count_2)
+
+    # Query 3: Average transaction count by state
+    query3 = f'''
+        SELECT states, AVG(transaction_count) AS transaction_count
+        FROM {table_name}
+        GROUP BY states
+        ORDER BY transaction_count;
+    '''
+
+    cursor.execute(query3)
+    table_3 = cursor.fetchall()
+
+    df_3 = pd.DataFrame(table_3, columns=["States", "Transaction_count"])
+
+    fig_count_3 = px.bar(df_3, y="States", x="Transaction_count", orientation="h",
+                         title="Average Transaction Count by State",
+                         color_discrete_sequence=px.colors.sequential.Magenta,
+                         height=700, width=700, hover_name="States")
+    # fig_count_3.show()
+    st.plotly_chart(fig_count_3)
+
+def top_chart_map_reg_user(table_name,state):
+    # Query 1: Top 10 districts by registered users (descending)
+    query1 = f'''
+        SELECT Districts, SUM(RegisteredUsers) AS RegisteredUsers
+        FROM {table_name}
+        WHERE states='{state}'
+        GROUP BY Districts
+        ORDER BY RegisteredUsers DESC
+        LIMIT 10;
+    '''
+
+    cursor.execute(query1)
+    table_1 = cursor.fetchall()
+    df_1 = pd.DataFrame(table_1, columns=["Districts", "RegisteredUsers"])
+    col1,col2 = st.columns(2)
+
+    with col1:
+        fig_amount_1 = px.bar(df_1, x="Districts", y="RegisteredUsers",
+                              title="Top 10 Districts by Registered Users",
+                              color_discrete_sequence=px.colors.sequential.Viridis,
+                              height=800, width=800, hover_name="Districts")
+        # fig_amount_1.show()
+        st.plotly_chart(fig_amount_1)
+
+    # Query 2: Bottom 10 districts by registered users (ascending)
+    query2 = f'''
+        SELECT Districts, SUM(RegisteredUsers) AS RegisteredUsers
+        FROM {table_name}
+        WHERE states='{state}'
+        GROUP BY Districts
+        ORDER BY RegisteredUsers 
+        LIMIT 10;
+    '''
+
+    cursor.execute(query2)
+    table_2 = cursor.fetchall()
+    df_2 = pd.DataFrame(table_2, columns=["Districts", "RegisteredUsers"])
+    with col2:
+        fig_amount_2 = px.bar(df_2, x="Districts", y="RegisteredUsers",
+                              title="Bottom 10 Districts by Registered Users",
+                              color_discrete_sequence=px.colors.sequential.Viridis,
+                              height=800, width=800, hover_name="Districts")
+        # fig_amount_2.show()
+        st.plotly_chart(fig_amount_2)
+    # Query 3: Average registered users by district
+    query3 = f'''
+        SELECT Districts, AVG(RegisteredUsers) AS RegisteredUsers
+        FROM {table_name}
+        WHERE states='{state}'
+        GROUP BY Districts;
+    '''
+
+    cursor.execute(query3)
+    table_3 = cursor.fetchall()
+    df_3 = pd.DataFrame(table_3, columns=["Districts", "RegisteredUsers"])
+
+    fig_amount_3 = px.bar(df_3, y="Districts", x="RegisteredUsers", orientation="h",
+                          title="Average Registered Users by District",
+                          color_discrete_sequence=px.colors.sequential.Viridis,
+                          height=700, width=700, hover_name="Districts")
+    # fig_amount_3.show()
+    st.plotly_chart(fig_amount_3)
+
+# top_chart_map_reg_user('map_user', 'Tamil Nadu')
+
+def top_chart_map_appopens(table_name, state):
+    # Query 1: Top 10 districts by AppOpens (descending)
+    query1 = f'''
+        SELECT Districts, SUM(AppOpens) AS AppOpens
+        FROM {table_name}
+        WHERE states='{state}'
+        GROUP BY Districts
+        ORDER BY AppOpens DESC
+        LIMIT 10;
+    '''
+
+    cursor.execute(query1)
+    table_1 = cursor.fetchall()
+    df_1 = pd.DataFrame(table_1, columns=["Districts", "AppOpens"])
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_amount_1 = px.bar(df_1, x="Districts", y="AppOpens",
+                              title="Top 10 Districts by AppOpens",
+                              color_discrete_sequence=px.colors.sequential.Viridis,
+                              height=800, width=800, hover_name="Districts")
+        # fig_amount_1.show()
+        st.plotly_chart(fig_amount_1)
+    # Query 2: Bottom 10 districts by AppOpens (ascending)
+    query2 = f'''
+        SELECT Districts, SUM(AppOpens) AS AppOpens
+        FROM {table_name}
+        WHERE states='{state}'
+        GROUP BY Districts
+        ORDER BY AppOpens 
+        LIMIT 10;
+    '''
+
+    cursor.execute(query2)
+    table_2 = cursor.fetchall()
+    df_2 = pd.DataFrame(table_2, columns=["Districts", "AppOpens"])
+    with col2:
+        fig_amount_2 = px.bar(df_2, x="Districts", y="AppOpens",
+                              title="Bottom 10 Districts by AppOpens",
+                              color_discrete_sequence=px.colors.sequential.Viridis,
+                              height=800, width=800, hover_name="Districts")
+        fig_amount_2.show()
+        st.plotly_chart(fig_amount_2)
+    # Query 3: Average AppOpens by district
+    query3 = f'''
+        SELECT Districts, AVG(AppOpens) AS AppOpens
+        FROM {table_name}
+        WHERE states='{state}'
+        GROUP BY Districts;
+    '''
+
+    cursor.execute(query3)
+    table_3 = cursor.fetchall()
+    df_3 = pd.DataFrame(table_3, columns=["Districts", "AppOpens"])
+
+    fig_amount_3 = px.bar(df_3, y="Districts", x="AppOpens", orientation="h",
+                          title="Average AppOpens by District",
+                          color_discrete_sequence=px.colors.sequential.Viridis,
+                          height=700, width=700, hover_name="Districts")
+    # fig_amount_3.show()
+    st.plotly_chart(fig_amount_3)
+
+# top_chart_map_AppOpens
+def top_chart_top_reg_user(table_name):
+    # Query 1: Top 10 States by registered users (descending)
+    query1 = f'''
+        SELECT states,SUM(registeredUsers) AS registeredUsers
+        FROM {table_name}
+        GROUP BY States
+        ORDER BY registeredUsers DESC
+        LIMIT 10;
+    '''
+
+    cursor.execute(query1)
+    table_1 = cursor.fetchall()
+    df_1 = pd.DataFrame(table_1, columns=["States", "RegisteredUsers"])
+    col1,col2 = st.columns(2)
+    with col1:
+        fig_amount_1 = px.bar(df_1, x="States", y="RegisteredUsers",
+                              title="Top 10 States by Registered Users",
+                              color_discrete_sequence=px.colors.sequential.Viridis,
+                              height=800, width=800, hover_name="States")
+        # fig_amount_1.show()
+        st.plotly_chart(fig_amount_1)
+
+    # Query 2: Bottom 10 States by registered users (ascending)
+    query2 = f'''
+                SELECT states,SUM(registeredUsers) AS registeredUsers
+                FROM {table_name}
+                GROUP BY States
+                ORDER BY registeredUsers 
+                LIMIT 10;
+
+    '''
+    cursor.execute(query2)
+    table_2 = cursor.fetchall()
+    df_2 = pd.DataFrame(table_2, columns=["States", "RegisteredUsers"])
+    with col2:
+        fig_amount_2 = px.bar(df_2, x="States", y="RegisteredUsers",
+                              title="Bottom 10 States by Registered Users",
+                              color_discrete_sequence=px.colors.sequential.Viridis,
+                              height=800, width=800, hover_name="States")
+        # fig_amount_2.show()
+        st.plotly_chart(fig_amount_2)
+    # Query 3: Average registered users by States
+    query3 = f'''
+                SELECT states,AVG(registeredUsers) AS registeredUsers
+                FROM {table_name}
+                GROUP BY States
+                ORDER BY registeredUsers;
+    '''
+
+    cursor.execute(query3)
+    table_3 = cursor.fetchall()
+    df_3 = pd.DataFrame(table_3, columns=["States", "RegisteredUsers"])
+
+    fig_amount_3 = px.bar(df_3, y="States", x="RegisteredUsers", orientation="h",
+                          title="Average Registered Users by States",
+                          color_discrete_sequence=px.colors.sequential.Viridis,
+                          height=700, width=700, hover_name="States")
+    # fig_amount_3.show()
+    st.plotly_chart(fig_amount_3)
+
+# top_chart_top_reg_user('top_user')
+
+# Set the page layout at the beginning of the script
+st.set_page_config(layout="wide")
+# Display a red-colored title
+st.markdown("<h1 style='color: voilet;'>PHONEPE DATA VISUALIZATION AND EXPLORATION</h1>",
+            unsafe_allow_html=True)
+
+# Sidebar for navigation
+with st.sidebar:
+    select = option_menu("Main Menu", ["HOME", "DATA EXPLORATION", "TOP CHARTS"])
+
+# Main content
+if select == "HOME":
+    coll, col2 = st.columns(2)
+    with coll:
+        st.header("PHONEPE")
+        st.subheader("INDIA'S BEST TRANSACTION APP")
+        st.markdown("PhonePe is an Indian digital payments and financial technology company")
+        st.write("****FEATURES****")
+        st.write("****Credit & Debit card linking****")
+        st.write("****Bank Balance check****")
+        st.write("****Money Storage****")
+        st.write("**PIN Authorization**")
+        st.download_button("DOWNLOAD THE APP NOW", "https://www.phonepe.com/app-download/")
+    with col2:
+        st.image(Image.open(r"C:\Users\Dell\OneDrive\Desktop\phonepay\OIP.jpeg"))
+
+    col3, col4 = st.columns(2)
+    with col3:
+        st.image(Image.open(r"C:\Users\Dell\OneDrive\Desktop\phonepay\OIP (1).jpeg"))
+
+    with col4:
+        st.write("****Easy Transactions****")
+        st.write("****One App For All Your Payments****")
+        st.write("****Your Bank Account Is All You Need****")
+        st.write("****Multiple Payment Modes****")
+        st.write("****PhonePe Merchants****")
+        st.write("****Multiple Ways To Pay****")
+        st.write("****1.Direct Transfer & More****")
+        st.write("****2.QR Code****")
+        st.write("****Earn Great Rewards****")
+
+    col5, col6 = st.columns(2)
+    with col5:
+        st.markdown("")
+        st.write("****No Wallet Top-Up Required****")
+        st.write("****Pay Directly From Any Bank To Any Bank A/C****")
+        st.write("****Instantly & Free****")
+
+    with col6:
+        st.image(Image.open(r"C:\Users\Dell\OneDrive\Desktop\phonepay\OIP (2).jpeg"))
+
+elif select == "DATA EXPLORATION":
+
+    tab1, tab2, tab3 = st.tabs(["Aggregated Analysis", "Map Analysis", "Top Analysis"])
+
+    with tab1:
+        selected_option = st.radio("Select The Method", ["Insurance Analysis", "Transaction Analysis", "User Analysis"],
+                                   key="tab1_radio")
+
+        if selected_option == "Insurance Analysis":
+            st.header("Aggregate Insurance Data")
+            year = st.selectbox("Select Year", aggregate_insurance["Years"].unique(), key="agg_ins_year")
+            AIACY = agg_insurance_amount_count_y(aggregate_insurance, year)
+
+            st.header("Aggregate Insurance Data by Quarter")
+            quarter = st.selectbox("Select Quarter", AIACY["Quarter"].unique(), key="agg_ins_quarter")
+            agg_insurance_amount_count_y_quarter(AIACY, quarter)
+
+        elif selected_option == "Transaction Analysis":
+            st.header("Aggregate Transaction Data")
+            year = st.selectbox("Select Year", aggregate_transaction["Years"].unique(), key="agg_trans_year")
+            ATACY = aggre_transaction_amount_count_y(aggregate_transaction, year)
+
+            st.header("Aggregate Transaction Data by Quarter")
+            quarter = st.selectbox("Select Quarter", ATACY["Quarter"].unique(), key="agg_trans_quarter")
+            aggre_transaction_amount_count_y_quarter(ATACY, quarter)
+
+            st.header("Aggregate Transaction Type by State")
+            state = st.selectbox("Select State", ATACY["States"].unique(), key="agg_trans_type_state")
+            aggre_Transaction_Type_amount_count_y(ATACY, state)
+
+        elif selected_option == "User Analysis":
+            st.header("Aggregate User Brand Data")
+            year = st.selectbox("Select Year", aggregate_user["Years"].unique(), key="agg_user_year")
+            AUCY = aggregate_user_year(aggregate_user, year)
+
+            st.header("Aggregate User Data by State")
+            state = st.selectbox("Select State", AUCY["States"].unique(), key="agg_user_state")
+            aggregate_user_year_states(AUCY, state)
+
+    with tab2:
+        selected_option = st.radio("Select The Method", ["Map Insurance", "Map Transaction", "Map User"],
+                                   key="tab2_radio")
+
+        if selected_option == "Map Insurance":
+            st.header("Map Insurance Data")
+            year = st.selectbox("Select Year", map_insurance["Years"].unique(), key="map_ins_year")
+            MITACY = map_ins_transaction_amount_count_y(map_insurance, year)
+
+            st.header("Map Insurance Data by Quarter")
+            quarter = st.selectbox("Select Quarter", MITACY["Quarter"].unique(), key="map_ins_quarter")
+            map_ins_transaction_amount_count_y_quarter(MITACY, quarter)
+
+            st.header("Map Insurance Data by States")
+            state = st.selectbox("Select States", MITACY["States"].unique(), key="map_ins_state")
+            map_insurance_districts_count(MITACY, state)
+
+        elif selected_option == "Map Transaction":
+            st.header("Map Transaction Data")
+            year = st.selectbox("Select Years", map_transaction["Years"].unique(), key="map_trans_year")
+            MTACY = map_transaction_amount_count_y(map_transaction, year)
+
+            st.header("Map Transaction Data by Quarter")
+            quarter = st.selectbox("Select Quarter", MTACY["Quarter"].unique(), key="map_trans_quarter")
+            map_ins_transaction_amount_count_y_quarter(MTACY, quarter)
+
+            st.header("Map Transaction Data by States")
+            state = st.selectbox("Select States", MTACY["States"].unique(), key="map_trans_state")
+            map_trans_districts_amount_count(MTACY, state)
+
+        elif selected_option == "Map User":
+            st.header("Map User Data")
+            year = st.selectbox("Select Years", map_user["Years"].unique(), key="map_user_year")
+            MURA = map_user_r_a(map_user, year)
+
+            st.header("Map User Quarter Data")
+            quarter = st.selectbox("Select quarter", MURA["Quarter"].unique(), key="map_user_quarter")
+            map_user_r_a_q(MURA, quarter)
+
+            st.header("Map User States Data")
+            state = st.selectbox("Select States", MURA["States"].unique(), key="map_user_state")
+            map_user_r_a_s(MURA, state)
+
+    with tab3:
+        selected_option = st.radio("Select The Method", ["Top Insurance", "Top Transaction", "Top User"],
+                                   key="tab3_radio")
+
+        if selected_option == "Top Insurance":
+            st.header("Top Insurance Data")
+            year = st.selectbox("Select Years", top_insurance["Years"].unique(), key="top_ins_year")
+            TITACY = top_insurance_amount_count_y(top_insurance, year)
+
+            st.header("Top Insurance Data by Quarter")
+            quarter = st.selectbox("Select Quarter", TITACY["Quarter"].unique(), key="top_ins_quarter")
+            Top_ins_transaction_amount_count_Y_Quarter(TITACY, quarter)
+
+            st.header("Top Insurance Data by States")
+            state = st.selectbox("Select States", TITACY["States"].unique(), key="top_ins_state")
+            top_insurance_amount_count_pincode_y(TITACY, state)
+
+        elif selected_option == "Top Transaction":
+            st.header("Top Transaction Data")
+            year = st.selectbox("Select Years", top_transaction["Years"].unique(), key="top_trans_year")
+            TTACY = top_transaction_amount_count_y(top_transaction, year)
+
+            st.header("Top Transaction Data by Quarter")
+            quarter = st.selectbox("Select Quarter", TTACY["Quarter"].unique(), key="top_trans_quarter")
+            top_transaction_amount_count_y_quarter(TTACY, quarter)
+
+            st.header("Top Transaction Data by States")
+            state = st.selectbox("Select States", TTACY["States"].unique(), key="top_trans_state")
+            top_transaction_amount_count_pincode_y(TTACY, state)
+
+        elif selected_option == "Top User":
+            st.header("Top User Data")
+            year = st.selectbox("Select Years", top_user["Years"].unique(), key="top_user_year")
+            TUA = top_user_analysis(top_user, year)
+
+            st.header("Top User Data by Quarter")
+            states = st.selectbox("Select States", TUA["States"].unique(), key="top_user_state")
+            top_user_analysis_quarter(TUA, states)
+
+elif select == "TOP CHARTS":
+
+    Question = st.selectbox("Select the Question", ["1. Transaction Amount and Count of Aggregated Insurance",
+                                                    "2. Transaction Amount and Count of Map Insurance",
+                                                    "3. Transaction Amount and Count of Top Insurance",
+                                                    "4. Transaction Amount and Count of Aggregated Transaction",
+                                                    "5. Transaction Amount and Count of Map Transaction",
+                                                    "6. Transaction Amount and Count of Top Transaction",
+                                                    "7. Transaction Count of Aggregated User",
+                                                    "8. Registered users of Map User",
+                                                    "9. App opens of Map User",
+                                                    "10. Registered users of Top User"
+                                                    ])
+
+    if Question == "1. Transaction Amount and Count of Aggregated Insurance":
+        st.header("TRANSACTION AMOUNT")
+        top_chart_trans_amount("agg_insurance")
+        st.header("TRANSACTION COUNT")
+        top_chart_trans_count("agg_insurance")
+
+    elif Question == "2. Transaction Amount and Count of Map Insurance":
+        st.header("TRANSACTION AMOUNT")
+        top_chart_trans_amount("map_insurance")
+        st.header("TRANSACTION COUNT")
+        top_chart_trans_count("map_insurance")
+
+    elif Question == "3. Transaction Amount and Count of Top Insurance":
+        st.header("TRANSACTION AMOUNT")
+        top_chart_trans_amount("top_insurance")
+        st.header("TRANSACTION COUNT")
+        top_chart_trans_count("top_insurance")
+
+
+    elif Question == "4. Transaction Amount and Count of Aggregated Transaction":
+        st.header("TRANSACTION AMOUNT")
+        top_chart_trans_amount("aggre_transaction")
+        st.header("TRANSACTION COUNT")
+        top_chart_trans_count("aggre_transaction")
+
+    elif Question == "5. Transaction Amount and Count of Map Transaction":
+        st.header("TRANSACTION AMOUNT")
+        top_chart_trans_amount("map_trans")
+        st.header("TRANSACTION COUNT")
+        top_chart_trans_count("map_trans")
+
+    elif Question == "6. Transaction Amount and Count of Top Transaction":
+        st.header("TRANSACTION AMOUNT")
+        top_chart_trans_amount("top_transaction")
+        st.header("TRANSACTION COUNT")
+        top_chart_trans_count("top_transaction")
+
+    elif Question == "7. Transaction Count of Aggregated User":
+        st.header("TRANSACTION COUNT")
+        top_chart_trans_count("aggree_userr")
+
+
+    elif Question == "8. Registered users of Map User":
+
+        state = st.selectbox("Select States", map_user["States"].unique())
+        st.header("REGISTERED USERS")
+        top_chart_map_reg_user('map_user', state)
+
+
+    elif Question == "9. App opens of Map User":
+
+        state = st.selectbox("Select States", map_user["States"].unique())
+        st.header("APP OPENS")
+        top_chart_map_reg_user('map_user', state)
+
+    elif Question == "10. Registered users of Top User":
+
+        state = st.selectbox("Select States", map_user["States"].unique())
+        st.header("TOP USER")
+        top_chart_top_reg_user('top_user')
+
+# Close SQL connection
+mydb.close()
