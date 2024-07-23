@@ -1,12 +1,12 @@
+import streamlit as st
+from streamlit_option_menu import option_menu
+import plotly.express as px
 import mysql.connector
 import pandas as pd
 import requests
 import json
-import plotly.express as px
-import streamlit as st
-from streamlit_option_menu import option_menu
 from PIL import Image
-
+import os
 
 # SQL connection
 mydb = mysql.connector.connect(
@@ -17,6 +17,624 @@ mydb = mysql.connector.connect(
 )
 cursor = mydb.cursor()
 
+# Define the path to the directory
+path1 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\aggregated\insurance\country\india\state\\'
+path2 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\aggregated\transaction\country\india\state\\'
+path3 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\aggregated\user\country\india\state\\'
+path4 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\map\insurance\hover\country\india\state\\'
+path5 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\map\transaction\hover\country\india\state\\'
+path6 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\map\user\hover\country\india\state\\'
+path7 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\top\insurance\country\india\state\\'
+path8 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\top\transaction\country\india\state\\'
+path9 = r"C:\Users\Dell\OneDrive\Desktop\phonepay\data\top\user\country\india\state\\"
+
+# List all files and directories in the specified path
+
+agg_insurance_list = os.listdir(path1)
+
+columns1 = {"States": [], "Years": [], "Quarter": [], "Transaction_type": [], "Transaction_count": [],
+            "Transaction_amount": []}
+for state in agg_insurance_list:
+    cur_states = path1 + state + ("/")    
+    agg_year_list = os.listdir(cur_states)
+    
+    for year in agg_year_list:
+        cur_year = cur_states + year + ("/")
+        agg_file_list = os.listdir(cur_year)
+    
+        for file in agg_file_list:
+            cur_file = cur_year + file
+            data = open(cur_file, "r")
+            A = json.load(data)    
+            for i in A["data"]["transactionData"]:
+                name = i["name"]    
+                count = i["paymentInstruments"][0]["count"]
+                amount = i["paymentInstruments"][0]["amount"]    
+                columns1["Transaction_type"].append(name)
+                columns1["Transaction_count"].append(count)
+                columns1["Transaction_amount"].append(amount)
+                columns1["States"].append(state)
+                columns1["Years"].append(year)
+                columns1["Quarter"].append(int(file.strip(".json")))
+
+            # CONVERT JSON FORMAT INTO DATAFRAME
+agg_insurance = pd.DataFrame(columns1)
+# agg_insurance
+
+# SLICING STATES DETAILS
+agg_insurance["States"] = agg_insurance["States"].str.replace('andaman-&-nicobar-islands', 'Andaman & Nicobar')
+agg_insurance["States"] = agg_insurance["States"].str.replace("-", " ")
+agg_insurance["States"] = agg_insurance["States"].str.title()
+agg_insurance["States"] = agg_insurance["States"].str.replace('Dadra & Nagar Haveli & Daman & Diu',
+                                                              'Dadra and Nagar Haveli and Daman and Diu')
+
+# SHOW UNIQUE VALUES OF STATES
+# agg_insurance["States"].unique()
+# List all files and directories in the specified path
+agg_tran_list = os.listdir(path2)
+columns2 = {"States": [], "Years": [], "Quarter": [], "Transaction_type": [], "Transaction_count": [],
+            "Transaction_amount": []}
+for state in agg_tran_list:
+    cur_states = path2 + state + ("/")    
+    agg_year_list = os.listdir(cur_states)
+    
+    for year in agg_year_list:
+        cur_year = cur_states + year + ("/")
+        agg_file_list = os.listdir(cur_year)
+    
+        for file in agg_file_list:
+            cur_file = cur_year + file
+            data = open(cur_file, "r")
+            B = json.load(data)
+            for i in B["data"]["transactionData"]:
+                name = i["name"]
+                count = i["paymentInstruments"][0]["count"]
+                amount = i["paymentInstruments"][0]["amount"]
+                columns2["Transaction_type"].append(name)
+                columns2["Transaction_count"].append(count)
+                columns2["Transaction_amount"].append(amount)
+                columns2["States"].append(state)
+                columns2["Years"].append(year)
+                columns2["Quarter"].append(int(file.strip(".json")))
+
+            # CONVERT JSON FORMAT INTO DATAFRAME
+aggre_transaction = pd.DataFrame(columns2)
+# aggre_transaction
+aggre_transaction["States"] = aggre_transaction["States"].str.replace('andaman-&-nicobar-islands', 'Andaman & Nicobar')
+aggre_transaction["States"] = aggre_transaction["States"].str.replace("-", " ")
+aggre_transaction["States"] = aggre_transaction["States"].str.title()
+aggre_transaction["States"] = aggre_transaction["States"].str.replace('Dadra & Nagar Haveli & Daman & Diu',
+                                                                      'Dadra and Nagar Haveli and Daman and Diu')
+
+# List all files and directories in the specified path
+agg_user_list = os.listdir(path3)
+columns3 = {
+    "States": [], "Years": [], "Quarter": [], 'Brand': [],
+    "Transaction_count": [], "Percentage": []
+}
+for state in agg_user_list:
+    cur_states = path3 + state + ("/")
+    agg_year_list = os.listdir(cur_states)
+
+    for year in agg_year_list:
+        cur_year = cur_states + year + "/"
+        agg_file_list = os.listdir(cur_year)
+
+        for file in agg_file_list:
+            cur_file = cur_year + file
+            data = open(cur_file, "r")
+            C = json.load(data)
+        try:
+            for i in C['data']['usersByDevice']:
+                # print(C["data"]["usersByDevice"])
+                brand = i["brand"]
+                # print(name)
+                count = i["count"]
+                percentage = i["percentage"]
+                # print(count)
+                columns3['Brand'].append(brand)
+                columns3["Transaction_count"].append(count)
+                columns3["Percentage"].append(percentage)
+                columns3["States"].append(state)
+                columns3["Years"].append(year)
+                columns3["Quarter"].append(int(file.replace(".json", "")))
+
+        except:
+            pass
+
+aggree_user = pd.DataFrame(columns3)
+# print(aggree_user)
+aggree_user["States"] = aggree_user["States"].str.replace('andaman-&-nicobar-islands', 'Andaman & Nicobar')
+aggree_user["States"] = aggree_user["States"].str.replace("-", " ")
+aggree_user["States"] = aggree_user["States"].str.title()
+aggree_user["States"] = aggree_user["States"].str.replace('Dadra & Nagar Haveli & Daman & Diu',
+                                                          'Dadra and Nagar Haveli and Daman and Diu')
+
+
+# List all files and directories in the specified path
+map_insurance_list = os.listdir(path4)
+
+columns4 = {
+    "States": [], "Years": [], "Quarter": [], "Districts": [],
+    "Transaction_count": [], "Transaction_amount": []
+}
+for state in map_insurance_list:
+    cur_states = path4 + state + ("/")
+    agg_year_list = os.listdir(cur_states)
+
+    for year in agg_year_list:
+        cur_year = cur_states + year + "/"
+        agg_file_list = os.listdir(cur_year)
+
+        for file in agg_file_list:
+            cur_file = cur_year + file
+            data = open(cur_file, "r")
+            D = json.load(data)
+
+        try:
+            for i in D["data"]["hoverDataList"]:
+                name = i["name"]
+                count = i["metric"][0]["count"]
+                amount = i["metric"][0]["amount"]
+                columns4["Districts"].append(name)
+                columns4["Transaction_count"].append(count)
+                columns4["Transaction_amount"].append(amount)
+                columns4["States"].append(state)
+                columns4["Years"].append(year)
+                columns4["Quarter"].append(int(file.strip(".json")))
+        except:
+            pass
+
+map_insurance = pd.DataFrame(columns4)
+# map_insurance
+# columns4
+
+map_insurance["States"] = map_insurance["States"].str.replace('andaman-&-nicobar-islands', 'Andaman & Nicobar')
+map_insurance["States"] = map_insurance["States"].str.replace("-", " ")
+map_insurance["States"] = map_insurance["States"].str.title()
+map_insurance["States"] = map_insurance["States"].str.replace('Dadra & Nagar Haveli & Daman & Diu',
+                                                              'Dadra and Nagar Haveli and Daman and Diu')
+
+# map_insurance["States"].unique()
+
+# List all files and directories in the specified path
+map_trans_list = os.listdir(path5)
+
+columns5 = {
+    "States": [], "Years": [], "Quarter": [], "Districts": [],
+    "Transaction_count": [], "Transaction_amount": []
+}
+for state in map_trans_list:
+    cur_states = path5 + state + ("/")
+    agg_year_list = os.listdir(cur_states)
+
+    for year in agg_year_list:
+        cur_year = cur_states + year + "/"
+        agg_file_list = os.listdir(cur_year)
+
+        for file in agg_file_list:
+            cur_file = cur_year + file
+            data = open(cur_file, "r")
+            E = json.load(data)
+            for i in E["data"]["hoverDataList"]:
+                name = i["name"]
+                count = i["metric"][0]["count"]
+                amount = i["metric"][0]["amount"]
+                columns5["Districts"].append(name)
+                columns5["Transaction_count"].append(count)
+                columns5["Transaction_amount"].append(amount)
+                columns5["States"].append(state)
+                columns5["Years"].append(year)
+                columns5["Quarter"].append(int(file.strip(".json")))
+            # CONVERT JSON FORMAT INTO DATA FRAME
+map_trans = pd.DataFrame(columns5)
+
+map_trans["States"] = map_trans["States"].str.replace('andaman-&-nicobar-islands', 'Andaman & Nicobar')
+map_trans["States"] = map_trans["States"].str.replace("-", " ")
+map_trans["States"] = map_trans["States"].str.title()
+map_trans["States"] = map_trans["States"].str.replace('Dadra & Nagar Haveli & Daman & Diu',
+                                                      'Dadra and Nagar Haveli and Daman and Diu')
+
+# map_trans["States"].unique()
+
+# List all files and directories in the specified path
+map_user_list = os.listdir(path6)
+columns6 = {
+    "States": [], "Years": [], "Quarter": [], "Districts": [],
+    "RegisteredUsers": [], "AppOpens": []
+}
+for state in map_user_list:
+    cur_states = path6 + state + ("/")
+    agg_year_list = os.listdir(cur_states)
+
+    for year in agg_year_list:
+        cur_year = cur_states + year + "/"
+        agg_file_list = os.listdir(cur_year)
+
+        for file in agg_file_list:
+            cur_file = cur_year + file
+            data = open(cur_file, "r")
+
+            F = json.load(data)
+            
+            for i in F["data"]["hoverData"].items():
+                district = i[0]
+                registeredUsers = i[1]["registeredUsers"]
+                appOpens = i[1]["appOpens"]
+                columns6["Districts"].append(district)
+                columns6["RegisteredUsers"].append(registeredUsers)
+                columns6["AppOpens"].append(appOpens)
+                columns6["States"].append(state)
+                columns6["Years"].append(year)
+                columns6["Quarter"].append(int(file.strip(".json")))
+
+# convert json to dataframe
+map_user = pd.DataFrame(columns6)
+# print(map_user)
+
+map_user["States"] = map_user["States"].str.replace('andaman-&-nicobar-islands', 'Andaman & Nicobar')
+map_user["States"] = map_user["States"].str.replace("-", " ")
+map_user["States"] = map_user["States"].str.title()
+map_user["States"] = map_user["States"].str.replace('Dadra & Nagar Haveli & Daman & Diu',
+                                                    'Dadra and Nagar Haveli and Daman and Diu')
+
+# map_user["States"].unique()
+
+# List all files and directories in the specified path
+top_insurance_list = os.listdir(path7)
+
+columns7 = {
+    "States": [], "Years": [], "Quarter": [], "pincodes": [],
+    "Transaction_count": [], "Transaction_amount": []
+}
+for state in top_insurance_list:
+    cur_states = path7 + state + ("/")
+    agg_year_list = os.listdir(cur_states)
+
+    for year in agg_year_list:
+        cur_year = cur_states + year + "/"        
+        agg_file_list = os.listdir(cur_year)
+        
+
+        for file in agg_file_list:
+            cur_file = cur_year + file
+            data = open(cur_file, "r")
+
+            G = json.load(data)
+            # print(json.dumps(G, indent=4))
+            # print(G)
+
+            for i in G["data"]["pincodes"]:
+                # print(B["data"]["hoverDataList"])
+                entityname = i["entityName"]
+                
+                count = i["metric"]["count"]
+                amount = i["metric"]["amount"]
+                
+                columns7["pincodes"].append(entityname)
+                columns7["Transaction_count"].append(count)
+                columns7["Transaction_amount"].append(amount)
+                columns7["States"].append(state)
+                columns7["Years"].append(year)
+                columns7["Quarter"].append(int(file.strip(".json")))
+                
+# convert json to dataframe
+top_insurance = pd.DataFrame(columns7)
+# top_insurance
+
+top_insurance["States"] = top_insurance["States"].str.replace('andaman-&-nicobar-islands', 'Andaman & Nicobar')
+top_insurance["States"] = top_insurance["States"].str.replace("-", " ")
+top_insurance["States"] = top_insurance["States"].str.title()
+top_insurance["States"] = top_insurance["States"].str.replace('Dadra & Nagar Haveli & Daman & Diu',
+                                                              'Dadra and Nagar Haveli and Daman and Diu')
+
+# top_insurance["States"].unique()
+
+# List all files and directories in the specified path
+top_trans_list = os.listdir(path8)
+
+columns8 = {
+    "States": [], "Years": [], "Quarter": [], "pincodes": [],
+    "Transaction_count": [], "Transaction_amount": []
+}
+for state in top_trans_list:
+    cur_states = path8 + state + ("/")    
+    agg_year_list = os.listdir(cur_states)
+    
+    for year in agg_year_list:
+        cur_year = cur_states + year + "/"    
+        agg_file_list = os.listdir(cur_year)        
+
+        for file in agg_file_list:
+            cur_file = cur_year + file
+            data = open(cur_file, "r")
+
+            H = json.load(data)
+
+            for i in H["data"]["pincodes"]:
+                
+                entityname = i["entityName"]
+
+                count = i["metric"]["count"]
+                amount = i["metric"]["amount"]
+
+                columns8["pincodes"].append(entityname)
+                columns8["Transaction_count"].append(count)
+                columns8["Transaction_amount"].append(amount)
+                columns8["States"].append(state)
+                columns8["Years"].append(year)
+                columns8["Quarter"].append(int(file.strip(".json")))
+
+# CONVERT JSON TO DATA FRAME
+top_transaction = pd.DataFrame(columns8)
+
+top_transaction["States"] = top_transaction["States"].str.replace('andaman-&-nicobar-islands', 'Andaman & Nicobar')
+top_transaction["States"] = top_transaction["States"].str.replace("-", " ")
+top_transaction["States"] = top_transaction["States"].str.title()
+top_transaction["States"] = top_transaction["States"].str.replace('Dadra & Nagar Haveli & Daman & Diu',
+                                                                  'Dadra and Nagar Haveli and Daman and Diu')
+
+
+# List all files and directories in the specified path
+top_user_list = os.listdir(path9)
+
+columns9 = {
+    "States": [], "Years": [], "Quarter": [], "pincodes": [],
+    "registeredUsers": []
+}
+for state in top_user_list:
+    cur_states = path9 + state + ("/")
+
+    agg_year_list = os.listdir(cur_states)
+
+
+    for year in agg_year_list:
+        cur_year = cur_states + year + "/"
+
+        agg_file_list = os.listdir(cur_year)
+
+
+        for file in agg_file_list:
+            cur_file = cur_year + file
+            data = open(cur_file, "r")
+
+            I = json.load(data)
+            # pprint.pprint(I)
+
+            for i in I["data"]["pincodes"]:
+                entityname = i["name"]
+
+                registeredusers = i["registeredUsers"]
+
+                columns9["pincodes"].append(entityname)
+                columns9["registeredUsers"].append(registeredusers)
+                columns9["States"].append(state)
+                columns9["Years"].append(year)
+                columns9["Quarter"].append(int(file.strip(".json")))
+
+# CONVERT JSON INTO DATAFRAME
+top_user = pd.DataFrame(columns9)
+
+top_user["States"] = top_user["States"].str.replace('andaman-&-nicobar-islands', 'Andaman & Nicobar')
+top_user["States"] = top_user["States"].str.replace("-", " ")
+top_user["States"] = top_user["States"].str.title()
+top_user["States"] = top_user["States"].str.replace('Dadra & Nagar Haveli & Daman & Diu',
+                                                    'Dadra and Nagar Haveli and Daman and Diu')
+
+# top_user["States"].unique()
+
+# Create the table if it does not exist
+create_query_1 = '''
+CREATE TABLE IF NOT EXISTS agg_insurance(
+    States VARCHAR(255),
+    Years INT,
+    Quarter INT,
+    Transaction_type VARCHAR(255),
+    Transaction_count BIGINT,
+    Transaction_amount BIGINT
+)
+'''
+
+# Create the table if it does not exist
+create_query_2 = '''
+CREATE TABLE IF NOT EXISTS aggre_transaction(
+    States VARCHAR(255),
+    Years INT,
+    Quarter INT,
+    Transaction_type VARCHAR(255),
+    Transaction_count BIGINT,
+    Transaction_amount BIGINT
+)
+'''
+
+# Create the table if it does not exist
+create_query_3 = '''
+CREATE TABLE IF NOT EXISTS aggree_userr(
+    States VARCHAR(255),
+    Years INT,
+    Quarter INT,
+    Brand VARCHAR(255),
+    Transaction_count BIGINT,
+    Percentage float
+)
+'''
+
+# Create the table if it does not exist
+create_query_4 = '''
+CREATE TABLE IF NOT EXISTS map_insurance(
+    States VARCHAR(255),
+    Years INT,
+    Quarter INT,
+    Districts VARCHAR(255),
+    Transaction_count BIGINT,
+    Transaction_amount BIGINT
+)
+'''
+
+# Create the table if it does not exist
+create_query_5 = '''
+CREATE TABLE IF NOT EXISTS map_trans(
+    States VARCHAR(255),
+    Years INT,
+    Quarter INT,
+    Districts VARCHAR(255),
+    Transaction_count BIGINT,
+    Transaction_amount BIGINT
+)
+'''
+
+# Create the table if it does not exist
+create_query_6 = '''
+CREATE TABLE IF NOT EXISTS map_user(
+    States VARCHAR(255),
+    Years INT,
+    Quarter INT,
+    Districts VARCHAR(255),
+    RegisteredUsers BIGINT,
+    AppOpens BIGINT
+)
+'''
+
+# Create the table if it does not exist
+create_query_7 = '''
+CREATE TABLE IF NOT EXISTS top_insurance(
+    States VARCHAR(255),
+    Years INT,
+    Quarter INT,
+    pincodes BIGINT,
+    Transaction_count BIGINT,
+    Transaction_amount BIGINT
+)
+'''
+# Create the table if it does not exist
+create_query_8 = '''
+CREATE TABLE IF NOT EXISTS top_transaction(
+    States VARCHAR(255),
+    Years INT,
+    Quarter INT,
+    pincodes BIGINT,
+    Transaction_count BIGINT,
+    Transaction_amount BIGINT
+)
+'''
+# Create the table if it does not exist
+create_query_9 = '''
+CREATE TABLE IF NOT EXISTS top_user(
+    States VARCHAR(255),
+    Years INT,
+    Quarter INT,
+    pincodes BIGINT,
+    registeredUsers BIGINT
+
+)
+'''
+cursor.execute(create_query_1)
+cursor.execute(create_query_2)
+cursor.execute(create_query_3)
+cursor.execute(create_query_4)
+cursor.execute(create_query_5)
+cursor.execute(create_query_6)
+cursor.execute(create_query_7)
+cursor.execute(create_query_8)
+cursor.execute(create_query_9)
+mydb.commit()
+
+# Insert data into the table
+insert_query_1 = '''
+INSERT INTO agg_insurance (
+    States, Years, Quarter, Transaction_type, Transaction_count, Transaction_amount
+) VALUES (%s, %s, %s, %s, %s, %s)
+'''
+
+data1 = agg_insurance.values.tolist()
+
+# Insert data into the table
+insert_query_2 = '''
+INSERT INTO aggre_transaction (
+    States, Years, Quarter, Transaction_type, Transaction_count, Transaction_amount
+) VALUES (%s, %s, %s, %s, %s, %s)
+'''
+
+data2 = aggre_transaction.values.tolist()
+
+# Insert data into the table
+insert_query_3 = '''
+INSERT INTO aggree_userr (
+    States, Years, Quarter, Brand, Transaction_count, Percentage
+) VALUES (%s, %s, %s, %s, %s, %s)
+'''
+
+data3 = aggree_user.values.tolist()
+
+# Insert data into the table
+insert_query_4 = '''
+INSERT INTO map_insurance (
+    States, Years, Quarter, Districts, Transaction_count, Transaction_amount
+) VALUES (%s, %s, %s, %s, %s, %s)
+'''
+
+data4 = map_insurance.values.tolist()
+
+# Insert data into the table
+insert_query_5 = '''
+INSERT INTO map_trans (
+    States, Years, Quarter, Districts, Transaction_count, Transaction_amount
+) VALUES (%s, %s, %s, %s, %s, %s)
+'''
+
+data5 = map_trans.values.tolist()
+
+# Insert data into the table
+insert_query_6 = '''
+INSERT INTO map_user (
+    States, Years, Quarter,Districts,RegisteredUsers, AppOpens
+) VALUES (%s, %s, %s, %s, %s,%s)
+'''
+
+data6 = map_user.values.tolist()
+
+# Insert data into the table
+insert_query_7 = '''
+INSERT INTO top_insurance (
+    States, Years, Quarter,pincodes,Transaction_count, Transaction_amount
+) VALUES (%s, %s, %s, %s, %s,%s)
+'''
+
+data7 = top_insurance.values.tolist()
+
+# Insert data into the table
+insert_query_8 = '''
+INSERT INTO top_transaction (
+    States, Years, Quarter,pincodes,Transaction_count, Transaction_amount
+) VALUES (%s, %s, %s, %s, %s,%s)
+'''
+
+data8 = top_transaction.values.tolist()
+
+# Insert data into the table
+insert_query_9 = '''
+INSERT INTO top_user (
+    States, Years, Quarter,pincodes,registeredUsers
+) VALUES (%s, %s, %s, %s, %s)
+'''
+
+data9 = top_user.values.tolist()
+
+try:
+    cursor.executemany(insert_query_1, data1)
+    cursor.executemany(insert_query_2, data2)
+    cursor.executemany(insert_query_3, data3)
+    cursor.executemany(insert_query_4, data4)
+    cursor.executemany(insert_query_5, data5)
+    cursor.executemany(insert_query_6, data6)
+    cursor.executemany(insert_query_7, data7)
+    cursor.executemany(insert_query_8, data8)
+    cursor.executemany(insert_query_9, data9)
+
+    mydb.commit()
+except mysql.connector.Error as err:
+    print(f"Error: {err}")
+    mydb.rollback()
 
 # Function to fetch and load data into DataFrame
 def load_data(table_name):
@@ -25,7 +643,6 @@ def load_data(table_name):
     cursor.execute(f"DESCRIBE phonepee1.{table_name}")
     columns = [column[0] for column in cursor.fetchall()]
     return pd.DataFrame(data, columns=columns)
-
 
 # Load data
 aggregate_insurance = load_data('agg_insurance')
@@ -39,6 +656,7 @@ top_transaction = load_data('top_transaction')
 top_user = load_data('top_user')
 
 # AGGREGATE ANALYSIS
+
 # AGGREGATE INSURANCE
 
 def agg_insurance_amount_count_y(df, year):
@@ -54,7 +672,7 @@ def agg_insurance_amount_count_y(df, year):
         st.plotly_chart(fig_amount)
     with col2:
         fig_count = px.bar(df_grouped, x="States", y="Transaction_count", title=f"{year} TRANSACTION COUNT",
-                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=800, width=800)
         # fig_count.show()
         st.plotly_chart(fig_count)
     col1,col2 = st.columns(2)
@@ -83,7 +701,10 @@ def agg_insurance_amount_count_y(df, year):
         fig_choropleth_count.update_geos(visible=False)
         # fig_choropleth_count.show()
         st.plotly_chart(fig_choropleth_count)
+
     return df_year
+
+# AIACY = agg_insurance_amount_count_Y(aggregate_insurance, 2021)
 
 def agg_insurance_amount_count_y_quarter(df,quarter):
     df_quarter = df[df["Quarter"] == quarter]
@@ -133,7 +754,6 @@ def agg_insurance_amount_count_y_quarter(df,quarter):
 
 
 # AGGREGATE TRANSACTION
-
 def aggre_transaction_amount_count_y(df,year):
     df_year = df[df["Years"] == year]
     df_year.reset_index(inplace=True, drop=True)
@@ -178,7 +798,6 @@ def aggre_transaction_amount_count_y(df,year):
         st.plotly_chart(fig_choropleth_count)
     return df_year
 
-
 def aggre_Transaction_Type_amount_count_y(df,states):
     df_year = df[df["States"] == states]
     df_year.reset_index(inplace=True, drop=True)
@@ -212,7 +831,7 @@ def aggre_transaction_amount_count_y_quarter(df,quarter):
     with col2:
         fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
-                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=800, width=800)
         # fig_count.show()
         st.plotly_chart(fig_count)
     col1,col2 = st.columns(2)
@@ -245,8 +864,8 @@ def aggre_transaction_amount_count_y_quarter(df,quarter):
         st.plotly_chart(fig_choropleth_count)
     return df_quarter
 
-# AGGREGATE USER
 
+# AGGREGATE USER
 def aggregate_user_year(df,year):
 
     agg_user_y = df[df["Years"] == year]
@@ -322,6 +941,8 @@ def map_ins_transaction_amount_count_y(df,year):
         st.plotly_chart(fig_choropleth_count)
     return df_year
 
+# MITACY=Map_ins_transaction_amount_count_Y(map_insurance, 2023)
+
 def map_ins_transaction_amount_count_y_quarter(df, quarter):
     df_quarter = df[df["Quarter"] == quarter]
     df_grouped = df_quarter.groupby("States")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
@@ -335,7 +956,7 @@ def map_ins_transaction_amount_count_y_quarter(df, quarter):
     with col2:
         fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
-                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=800, width=800)
         # fig_count.show()
         st.plotly_chart(fig_count)
     col1, col2 = st.columns(2)
@@ -367,6 +988,7 @@ def map_ins_transaction_amount_count_y_quarter(df, quarter):
         # fig_choropleth_count.show()
         st.plotly_chart(fig_choropleth_count)
     return df_quarter
+
 
 def map_insurance_districts_count(df, state):
     df_year = df[df["States"] == state]
@@ -446,7 +1068,7 @@ def map_transaction_amount_count_y_quarter(df, quarter):
     with col2:
         fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
-                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=800, width=800)
         # fig_count.show()
         st.plotly_chart(fig_count)
     col1,col2 = st.columns(2)
@@ -479,6 +1101,7 @@ def map_transaction_amount_count_y_quarter(df, quarter):
         st.plotly_chart(fig_choropleth_count)
     return df_quarter
 
+
 def map_trans_districts_amount_count(df, state):
     df_year = df[df["States"] == state]
     df_grouped = df_year.groupby("Districts")[["Transaction_count", "Transaction_amount"]].sum().reset_index()
@@ -498,7 +1121,6 @@ def map_trans_districts_amount_count(df, state):
         # fig_count.show()
         st.plotly_chart(fig_count)
 
-
 # MAP USER ANALYSIS
 # MAP USER
 
@@ -515,6 +1137,7 @@ def map_user_r_a(df, year):
     st.plotly_chart(fig_line_1)
     return df_year
 
+
 def map_user_r_a_q(df, quarter):
     df_quarter = df[df["Quarter"] == quarter]
     df_quarter.reset_index(inplace=True, drop=True)
@@ -529,6 +1152,7 @@ def map_user_r_a_q(df, quarter):
     st.plotly_chart(fig_line_2)
     return df_quarter
 
+
 def map_user_r_a_s(df, states):
     df_states = df[df["States"] == states]
     df_states.reset_index(inplace=True, drop=True)
@@ -542,10 +1166,9 @@ def map_user_r_a_s(df, states):
 
     fig_count = px.bar(df_states, y="AppOpens", x="Districts",
                        title="APP OPENS",
-                       color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+                       color_discrete_sequence=px.colors.sequential.Bluered_r, height=800, width=800)
     # fig_count.show()
     st.plotly_chart(fig_count)
-
 
 # TOP USER ANALYSIS
 # TOP INSURANCE
@@ -606,7 +1229,7 @@ def Top_ins_transaction_amount_count_Y_Quarter(df, quarter):
     with col2:
         fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
-                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=800, width=800)
         # fig_count.show()
         st.plotly_chart(fig_count)
     col1, col2 = st.columns(2)
@@ -639,6 +1262,7 @@ def Top_ins_transaction_amount_count_Y_Quarter(df, quarter):
         st.plotly_chart(fig_choropleth_count)
     return
 
+
 def top_insurance_amount_count_pincode_y(df, states):
     df_year = df[df["States"] == states]
     df_year.reset_index(drop=True, inplace=True)
@@ -650,7 +1274,7 @@ def top_insurance_amount_count_pincode_y(df, states):
     # fig_amount.show()
     st.plotly_chart(fig_amount)
     fig_count = px.bar(df_year, x="Quarter", y="Transaction_count", title="TRANSACTION COUNT", hover_data=["pincodes"],
-                       color_discrete_sequence=px.colors.sequential.Bluered_r, height=500, width=1000)
+                       color_discrete_sequence=px.colors.sequential.Bluered_r, height=800, width=1000)
     # fig_count.show()
     st.plotly_chart(fig_count)
 
@@ -714,7 +1338,7 @@ def top_transaction_amount_count_y_quarter(df, quarter):
     with col2:
         fig_count = px.bar(df_grouped, x="States", y="Transaction_count",
                            title=f"{df_quarter['Years'].min()} Year {quarter} QUARTER TRANSACTION COUNT",
-                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=850, width=800)
+                           color_discrete_sequence=px.colors.sequential.Bluered_r, height=800, width=800)
         # fig_count.show()
         st.plotly_chart(fig_count)
     col1, col2 = st.columns(2)
@@ -758,7 +1382,7 @@ def top_transaction_amount_count_pincode_y(df,states):
     # fig_amount.show()
     st.plotly_chart(fig_amount)
     fig_count = px.bar(df_year, x="Quarter", y="Transaction_count", title="TRANSACTION COUNT", hover_data=["pincodes"],
-                       color_discrete_sequence=px.colors.sequential.Bluered_r, height=500, width=1000)
+                       color_discrete_sequence=px.colors.sequential.Bluered_r, height=800)
     # fig_count.show()
     st.plotly_chart(fig_count)
 
@@ -777,7 +1401,9 @@ def top_user_year(df, year):
                            width=800, color_discrete_sequence=px.colors.sequential.Viridis, hover_name="Brand")
         # fig_bar_1.show()
         st.plotly_chart(fig_bar_1)
+
     return agg_user_y
+
 
 def top_user_analysis(df, year):
     df_year = df[df["Years"] == year]
@@ -791,6 +1417,7 @@ def top_user_analysis(df, year):
     # fig_topuser_1.show()
     st.plotly_chart(fig_topuser_1)
     return df_year
+
 
 def top_user_analysis_quarter(df, states):
     # Filter the dataframe for the given state
@@ -813,6 +1440,7 @@ def top_user_analysis_quarter(df, states):
     # Show the plot
     # fig_topuser_2.show()
     st.plotly_chart(fig_topuser_2)
+
     return df_year
 
 #top user charts amount:
@@ -1010,8 +1638,6 @@ def top_chart_map_reg_user(table_name,state):
                           height=700, width=700, hover_name="Districts")
     # fig_amount_3.show()
     st.plotly_chart(fig_amount_3)
-
-# top_chart_map_reg_user('map_user', 'Tamil Nadu')
 
 def top_chart_map_appopens(table_name, state):
     # Query 1: Top 10 districts by AppOpens (descending)
@@ -1384,5 +2010,6 @@ elif select == "TOP CHARTS":
         st.header("TOP USER")
         top_chart_top_reg_user('top_user')
 
-# Close SQL connection
+# Close the cursor and connection
+cursor.close()
 mydb.close()
