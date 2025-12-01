@@ -8,25 +8,54 @@ import json
 from PIL import Image
 import os
 
-# SQL connection
-mydb = mysql.connector.connect(
-    host='localhost',
-    user='root',
-    password='9965261653@rR',  # Consider using environment variables for passwords
-    database='phonepee1'
-)
+# --- 1. THIS MUST BE THE FIRST STREAMLIT COMMAND ---
+st.set_page_config(layout="wide")
+
+# --- 2. TITLE ---
+st.markdown("<h1 style='color: voilet;'>PHONEPE DATA VISUALIZATION AND EXPLORATION</h1>",
+            unsafe_allow_html=True)
+
+# --- 3. SECURE DATABASE CONNECTION ---
+# Ask for password in the sidebar (hidden with dots)
+db_password = st.sidebar.text_input("Enter MySQL Password", type="password")
+
+# Stop the app if no password is typed yet
+if not db_password:
+    st.warning("Please enter your MySQL password in the sidebar to load the data.")
+    st.stop()
+
+# Connect using the password you typed
+try:
+    mydb = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password=db_password,  # Use the variable
+        database='phonepee1'
+    )
+    cursor = mydb.cursor()
+except Exception as e:
+    st.error(f"Connection failed: {e}")
+    st.stop()
+
+# ----------------------------------
+
+# Define the path to the directory (These look correct now!)
+path1 = r'data\aggregated\insurance\country\india\state\\'
+path2 = r'data\aggregated\transaction\country\india\state\\'
+
+# ----------------------------------
 cursor = mydb.cursor()
 
 # Define the path to the directory
-path1 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\aggregated\insurance\country\india\state\\'
-path2 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\aggregated\transaction\country\india\state\\'
-path3 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\aggregated\user\country\india\state\\'
-path4 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\map\insurance\hover\country\india\state\\'
-path5 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\map\transaction\hover\country\india\state\\'
-path6 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\map\user\hover\country\india\state\\'
-path7 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\top\insurance\country\india\state\\'
-path8 = r'C:\Users\Dell\OneDrive\Desktop\phonepay\data\top\transaction\country\india\state\\'
-path9 = r"C:\Users\Dell\OneDrive\Desktop\phonepay\data\top\user\country\india\state\\"
+path1 = r'data\aggregated\insurance\country\india\state\\'
+path2 = r'data\aggregated\transaction\country\india\state\\'
+path3 = r'data\aggregated\user\country\india\state\\'
+path4 = r'data\map\insurance\hover\country\india\state\\'
+path5 = r'data\map\transaction\hover\country\india\state\\'
+path6 = r'data\map\user\hover\country\india\state\\'
+path7 = r'data\top\insurance\country\india\state\\'
+path8 = r'data\top\transaction\country\india\state\\'
+path9 = r"data\top\user\country\india\state\\"
 
 # List all files and directories in the specified path
 
@@ -1763,11 +1792,11 @@ def top_chart_top_reg_user(table_name):
 
 # top_chart_top_reg_user('top_user')
 
-# Set the page layout at the beginning of the script
-st.set_page_config(layout="wide")
-# Display a red-colored title
-st.markdown("<h1 style='color: voilet;'>PHONEPE DATA VISUALIZATION AND EXPLORATION</h1>",
-            unsafe_allow_html=True)
+# # Set the page layout at the beginning of the script
+# st.set_page_config(layout="wide")
+# # Display a red-colored title
+# st.markdown("<h1 style='color: voilet;'>PHONEPE DATA VISUALIZATION AND EXPLORATION</h1>",
+#             unsafe_allow_html=True)
 
 # Sidebar for navigation
 with st.sidebar:
@@ -1787,11 +1816,11 @@ if select == "HOME":
         st.write("**PIN Authorization**")
         st.download_button("DOWNLOAD THE APP NOW", "https://www.phonepe.com/app-download/")
     with col2:
-        st.image(Image.open(r"C:\Users\Dell\OneDrive\Desktop\phonepay\OIP.jpeg"))
+        st.image(Image.open(r"OIP.jpeg"))
 
     col3, col4 = st.columns(2)
     with col3:
-        st.image(Image.open(r"C:\Users\Dell\OneDrive\Desktop\phonepay\OIP (1).jpeg"))
+        st.image(Image.open(r"OIP (1).jpeg"))
 
     with col4:
         st.write("****Easy Transactions****")
@@ -1812,7 +1841,7 @@ if select == "HOME":
         st.write("****Instantly & Free****")
 
     with col6:
-        st.image(Image.open(r"C:\Users\Dell\OneDrive\Desktop\phonepay\OIP (2).jpeg"))
+        st.image(Image.open(r"OIP (2).jpeg"))
 
 elif select == "DATA EXPLORATION":
 

@@ -1,0 +1,7 @@
+streamlit
+streamlit-option-menu
+plotly
+mysql-connector-python
+pandas
+requests
+Pillow
